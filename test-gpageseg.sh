@@ -1,0 +1,1 @@
+python2 ~/Git/OCR4All/mptv/ocropus-gpageseg --maxcolseps -1 --parallel 8 --nocheck --minscale 12 --maxlines 300 --scale 0 --hscale 1 --vscale 1 --threshold 0.2 --noise 8 --maxseps 2 --sepwiden 10 --csminheight 10 --csminaspect 0.1 --pad 3 --expand 3 ~/Git/OCR4All/lineseg/data 
