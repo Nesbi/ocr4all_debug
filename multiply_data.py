@@ -49,7 +49,7 @@ def multiply(project_dir,output,count):
             if index < count:
                 # Get base name for new image
                 index += 1
-                name = "{:03d}".format(index)
+                name = "{:04d}".format(index)
                 # Copy orig
                 if os.path.exists(input_dir):
                     copyfile(os.path.join(input_dir,image+ext),os.path.join(input_dir_out,name+ext))
