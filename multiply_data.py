@@ -2,30 +2,15 @@ import os
 import argparse
 from shutil import copyfile
 import math
+from tqdm import tqdm
 
+# Rename a complete folder path.
+# Replaces the names of every folder starting with orig, into replace.
 def rename(path,orig,replace):          
     return os.path.sep.join([p.replace(orig,replace,1) if p.startswith(orig) else p for p in path.split(os.path.sep)])
 
-def tree(root):
-    # Create processing tree
-    tree = {}
-    for root,dirs,files in os.walk(processing_dir):
-        path = os.path.split(root)
-        
-        current = tree
-
-        for p in path:
-            p = p.replace("./","")
-            if p not in ["","."]: 
-                if p not in current:
-                    current[p] = {} 
-                current = current[p]
-        for directory in dirs:      
-            if directory not in current:
-                current[directory] = {} 
-        current["/files"] = files   
-    return tree
-
+# Recursively copy every file and folder starting with orig.
+# Replace orig with replace for every copy
 def recursive_copy(input_dir,output_dir,orig,replace):
     for content in os.listdir(input_dir):
         current = os.path.join(input_dir,content)
@@ -38,48 +23,62 @@ def recursive_copy(input_dir,output_dir,orig,replace):
             else:
                 copyfile(current,current_out)
 
+# Multiply the contents of a source ocr4all project into a new project
+# The new project will have count many images, which are multiples of the source project.
 def multiply(project_dir,output,count):
     input_dir = os.path.join(project_dir,"input")
     processing_dir = os.path.join(project_dir,"processing")
+    result_dir = os.path.join(project_dir,"results")
     images = [os.path.splitext(image) for image in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir,image))]
 
     # Create base folders in out
     input_dir_out = os.path.join(output,"input")
     processing_dir_out = os.path.join(output,"processing")
-    result_dir_out = os.path.join(output,"result")
+    result_dir_out = os.path.join(output,"results")
     if not os.path.exists(input_dir_out):
-        os.mkdir(input_dir_out)
+        os.makedirs(input_dir_out)
     if not os.path.exists(processing_dir_out):
-        os.mkdir(processing_dir_out)
+        os.makedirs(processing_dir_out)
     if not os.path.exists(result_dir_out):
-        os.mkdir(result_dir_out)
+        os.makedirs(result_dir_out)
 
     index = 0
     count_perimage = math.ceil(count/len(images))
-    tree = tree(os.path.join(processing_dir))
-    for image,ext in images:
-        for i in range(count_perimage):
-            # Get base name for new image
-            index += 1
-            name = "{:03d}".format(index)
-            # Copy orig
-            copyfile(os.path.join(input_dir,image+ext),os.path.join(input_dir_out,name+ext))
-            # Copy processed files
-            recursive_copy(processing_dir,processing_dir_out,image,name)
+    for i in tqdm(range(count_perimage)):
+        for image,ext in images:
+            if index < count:
+                # Get base name for new image
+                index += 1
+                name = "{:03d}".format(index)
+                # Copy orig
+                if os.path.exists(input_dir):
+                    copyfile(os.path.join(input_dir,image+ext),os.path.join(input_dir_out,name+ext))
+                
+                # Copy processed files
+                if os.path.exists(processing_dir):
+                    recursive_copy(processing_dir,processing_dir_out,image,name)
+                
+                # Copy result files
+                if os.path.exists(result_dir):
+                    for f in os.listdir(result_dir):
+                        f_in = os.path.join(result_dir,f)
+                        if os.path.isdir(f_in):
+                            f_out = os.path.join(result_dir_out,f)
+                            if not os.path.exists(f_out):
+                                os.makedirs(f_out)
+                            recursive_copy(f_in,f_out,image,name)
 
             
-        
 
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='''
+Multiply the contents of a source ocr4all project into a new project.
+The new project will have "count" many images, which are copies from images of the source project.''')
+    parser.add_argument('INPUT', type=str, help='Source input dir to multiply')
+    parser.add_argument('OUTPUT', type=str, help='Output dir to save the multiplied to')
+    parser.add_argument('-c','--count', default=10, type=int, help='The maximal number of items that should be added to output (not a multiplier)')
 
+    args = parser.parse_args()
 
-
-parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('integers', metavar='N', type=int, nargs='+',
-                    help='an integer for the accumulator')
-parser.add_argument('--sum', dest='accumulate', action='store_const',
-                    const=sum, default=max,
-                    help='sum the integers (default: find the max)')
-
-args = parser.parse_args()
-print(args.accumulate(args.integers))
+    multiply(args.INPUT,args.OUTPUT,args.count)
