@@ -3,6 +3,7 @@ import argparse
 from shutil import copyfile
 import math
 from tqdm import tqdm
+import re
 
 # Rename a complete folder path.
 # Replaces the names of every folder starting with orig, into replace.
@@ -11,7 +12,7 @@ def rename(path,orig,replace):
 
 # Recursively copy every file and folder starting with orig.
 # Replace orig with replace for every copy
-def recursive_copy(input_dir,output_dir,orig,replace):
+def recursive_copy(input_dir,output_dir,orig,replace,image_ext=".png"):
     for content in os.listdir(input_dir):
         current = os.path.join(input_dir,content)
         if content.startswith(orig):
@@ -19,9 +20,15 @@ def recursive_copy(input_dir,output_dir,orig,replace):
             if os.path.isdir(current):
                 if not os.path.exists(current_out):
                     os.makedirs(current_out)
-                recursive_copy(current,current_out,orig,replace)
+                recursive_copy(current,current_out,orig,replace,image_ext)
             else:
-                copyfile(current,current_out)
+                if not current.endswith(".xml"):
+                    copyfile(current,current_out)
+                else:
+                    with open(current, "r") as c_in:
+                        with open(current_out, "w") as c_out:
+                            for line in c_in:
+                                c_out.write(re.sub(r'imageFilename=[\'"].*[^\'"]',"imageFilename='{}'".format(orig+image_ext), line))
 
 # Multiply the contents of a source ocr4all project into a new project
 # The new project will have count many images, which are multiples of the source project.
@@ -56,7 +63,7 @@ def multiply(project_dir,output,count):
                 
                 # Copy processed files
                 if os.path.exists(processing_dir):
-                    recursive_copy(processing_dir,processing_dir_out,image,name)
+                    recursive_copy(processing_dir,processing_dir_out,image,name,ext)
                 
                 # Copy result files
                 if os.path.exists(result_dir):
@@ -66,7 +73,7 @@ def multiply(project_dir,output,count):
                             f_out = os.path.join(result_dir_out,f)
                             if not os.path.exists(f_out):
                                 os.makedirs(f_out)
-                            recursive_copy(f_in,f_out,image,name)
+                            recursive_copy(f_in,f_out,image,name,ext)
 
             
 
