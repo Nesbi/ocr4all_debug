@@ -28,7 +28,7 @@ def recursive_copy(input_dir,output_dir,orig,replace,image_ext=".png"):
                     with open(current, "r") as c_in:
                         with open(current_out, "w") as c_out:
                             for line in c_in:
-                                c_out.write(re.sub(r'imageFilename=[\'"].*[^\'"]',"imageFilename='{}'".format(orig+image_ext), line))
+                                c_out.write(re.sub(r'imageFilename=[\'"][^\'"]*[\'"]',"imageFilename='{}'".format(replace+image_ext), line))
 
 # Multiply the contents of a source ocr4all project into a new project
 # The new project will have count many images, which are multiples of the source project.
